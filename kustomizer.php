@@ -153,66 +153,81 @@ class Kustomizer {
      * Enqueue frontend assets
      */
     public function enqueue_frontend_assets() {
+        // Debug: Always load on product pages for testing
         if (is_product()) {
             global $product;
-            if ($product && $product->get_type() === 'kustomizer_product') {
-                // Three.js library
-                wp_enqueue_script(
-                    'threejs', 
-                    'https://cdnjs.cloudflare.com/ajax/libs/three.js/r160/three.min.js', 
-                    array(), 
-                    '160', 
-                    true
-                );
+            
+            // Debug logging
+            error_log('Kustomizer: On product page, Product ID: ' . get_the_ID());
+            
+            if ($product) {
+                error_log('Kustomizer: Product type: ' . $product->get_type());
                 
-                // STL Loader
-                wp_enqueue_script(
-                    'stl-loader', 
-                    KUSTOMIZER_PLUGIN_URL . 'assets/js/STLLoader.js', 
-                    array('threejs'), 
-                    KUSTOMIZER_VERSION, 
-                    true
-                );
-                
-                // Orbit Controls
-                wp_enqueue_script(
-                    'orbit-controls', 
-                    KUSTOMIZER_PLUGIN_URL . 'assets/js/OrbitControls.js', 
-                    array('threejs'), 
-                    KUSTOMIZER_VERSION, 
-                    true
-                );
-                
-                // Main customizer script
-                wp_enqueue_script(
-                    'kustomizer', 
-                    KUSTOMIZER_PLUGIN_URL . 'assets/js/kustomizer.js', 
-                    array('jquery', 'threejs', 'stl-loader', 'orbit-controls'), 
-                    KUSTOMIZER_VERSION, 
-                    true
-                );
-                
-                // Customizer styles
-                wp_enqueue_style(
-                    'kustomizer-styles', 
-                    KUSTOMIZER_PLUGIN_URL . 'assets/css/kustomizer.css', 
-                    array(), 
-                    KUSTOMIZER_VERSION
-                );
-                
-                // Localize script
-                wp_localize_script('kustomizer', 'kustomizer', array(
-                    'ajaxUrl' => admin_url('admin-ajax.php'),
-                    'nonce' => wp_create_nonce('kustomizer_nonce'),
-                    'productId' => get_the_ID(),
-                    'stlFile' => get_post_meta(get_the_ID(), '_kustomizer_stl_file', true),
-                    'translations' => array(
-                        'uploadTexture' => __('Upload Texture', 'kustomizer'),
-                        'addText' => __('Add Text', 'kustomizer'),
-                        'uploadSVG' => __('Upload SVG', 'kustomizer'),
-                        'generateLayout' => __('Generate Layout', 'kustomizer'),
-                    )
-                ));
+                if ($product->get_type() === 'kustomizer_product') {
+                    error_log('Kustomizer: Loading assets for Kustomizer product');
+                    
+                    // Three.js library
+                    wp_enqueue_script(
+                        'threejs', 
+                        'https://cdnjs.cloudflare.com/ajax/libs/three.js/r160/three.min.js', 
+                        array(), 
+                        '160', 
+                        true
+                    );
+                    
+                    // STL Loader
+                    wp_enqueue_script(
+                        'stl-loader', 
+                        KUSTOMIZER_PLUGIN_URL . 'assets/js/STLLoader.js', 
+                        array('threejs'), 
+                        KUSTOMIZER_VERSION, 
+                        true
+                    );
+                    
+                    // Orbit Controls
+                    wp_enqueue_script(
+                        'orbit-controls', 
+                        KUSTOMIZER_PLUGIN_URL . 'assets/js/OrbitControls.js', 
+                        array('threejs'), 
+                        KUSTOMIZER_VERSION, 
+                        true
+                    );
+                    
+                    // Main customizer script
+                    wp_enqueue_script(
+                        'kustomizer', 
+                        KUSTOMIZER_PLUGIN_URL . 'assets/js/kustomizer.js', 
+                        array('jquery', 'threejs', 'stl-loader', 'orbit-controls'), 
+                        KUSTOMIZER_VERSION, 
+                        true
+                    );
+                    
+                    // Customizer styles
+                    wp_enqueue_style(
+                        'kustomizer-styles', 
+                        KUSTOMIZER_PLUGIN_URL . 'assets/css/kustomizer.css', 
+                        array(), 
+                        KUSTOMIZER_VERSION
+                    );
+                    
+                    // Localize script
+                    wp_localize_script('kustomizer', 'kustomizer', array(
+                        'ajaxUrl' => admin_url('admin-ajax.php'),
+                        'nonce' => wp_create_nonce('kustomizer_nonce'),
+                        'productId' => get_the_ID(),
+                        'stlFile' => get_post_meta(get_the_ID(), '_kustomizer_stl_file', true),
+                        'translations' => array(
+                            'uploadTexture' => __('Upload Texture', 'kustomizer'),
+                            'addText' => __('Add Text', 'kustomizer'),
+                            'uploadSVG' => __('Upload SVG', 'kustomizer'),
+                            'generateLayout' => __('Generate Layout', 'kustomizer'),
+                        )
+                    ));
+                } else {
+                    error_log('Kustomizer: Product is not kustomizer_product type');
+                }
+            } else {
+                error_log('Kustomizer: No product object found');
             }
         }
     }
@@ -247,8 +262,24 @@ class Kustomizer {
      */
     public function add_customizer_interface() {
         global $product;
-        if ($product && $product->get_type() === 'kustomizer_product') {
-            include KUSTOMIZER_PLUGIN_DIR . 'templates/customizer-interface.php';
+        
+        // Debug logging
+        error_log('Kustomizer: add_customizer_interface called');
+        
+        if ($product) {
+            error_log('Kustomizer: Product type in interface: ' . $product->get_type());
+            
+            if ($product->get_type() === 'kustomizer_product') {
+                error_log('Kustomizer: Including customizer interface template');
+                include KUSTOMIZER_PLUGIN_DIR . 'templates/customizer-interface.php';
+            } else {
+                error_log('Kustomizer: Product is not kustomizer_product, not showing interface');
+                // For debugging, show a message
+                echo '<div style="background: #ff0; padding: 10px; margin: 10px 0;">Debug: Product type is "' . $product->get_type() . '", expected "kustomizer_product"</div>';
+            }
+        } else {
+            error_log('Kustomizer: No product found in add_customizer_interface');
+            echo '<div style="background: #f00; color: #fff; padding: 10px; margin: 10px 0;">Debug: No product object found</div>';
         }
     }
     
