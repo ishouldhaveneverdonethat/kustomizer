@@ -25,7 +25,8 @@ class Kustomizer_Product_Type {
     public static function add_product_options() {
         global $post;
         
-        echo '<div class="options_group show_if_kustomizer_product">';
+        echo '<div class="options_group show_if_kustomizer_product kustomizer-product-options" style="display: block;">';
+        echo '<h3>' . __('Kustomizer Settings', 'kustomizer') . '</h3>';
         
         // STL File Upload
         echo '<p class="form-field">';
@@ -104,22 +105,42 @@ class Kustomizer_Product_Type {
         ?>
         <script type="text/javascript">
         jQuery(document).ready(function($) {
-            // Show/hide Kustomizer options based on product type
-            $('select#product-type').change(function() {
-                if ($(this).val() === 'kustomizer_product') {
-                    $('.show_if_kustomizer_product').show();
+            console.log('Kustomizer product type script loaded');
+            
+            // Function to toggle Kustomizer options
+            function toggleKustomizerOptions() {
+                var productType = $('select#product-type').val();
+                console.log('Current product type:', productType);
+                
+                if (productType === 'kustomizer_product') {
+                    $('.show_if_kustomizer_product, .kustomizer-product-options').show();
+                    console.log('Showing Kustomizer options');
                 } else {
-                    $('.show_if_kustomizer_product').hide();
+                    $('.show_if_kustomizer_product, .kustomizer-product-options').hide();
+                    console.log('Hiding Kustomizer options');
                 }
-            }).change();
+            }
+            
+            // Show/hide Kustomizer options based on product type
+            $('select#product-type').on('change', toggleKustomizerOptions);
             
             // Force correct product type selection on page load
             <?php 
             $current_type = wp_get_object_terms($post->ID, 'product_type', array('fields' => 'slugs'));
             if (in_array('kustomizer_product', $current_type)) {
-                echo "setTimeout(function() { $('select#product-type').val('kustomizer_product').trigger('change'); }, 100);";
+                echo "setTimeout(function() { 
+                    $('select#product-type').val('kustomizer_product').trigger('change'); 
+                    $('.show_if_kustomizer_product, .kustomizer-product-options').show();
+                }, 100);";
             }
             ?>
+            
+            // Run toggle function immediately
+            toggleKustomizerOptions();
+            
+            // Also run after delays to handle dynamic content
+            setTimeout(toggleKustomizerOptions, 500);
+            setTimeout(toggleKustomizerOptions, 1000);
         });
         </script>
         <?php
@@ -131,7 +152,17 @@ class Kustomizer_Product_Type {
     public static function save_product_options($post_id) {
         // STL File URL
         if (isset($_POST['_kustomizer_stl_file'])) {
-            update_post_meta($post_id, '_kustomizer_stl_file', sanitize_text_field($_POST['_kustomizer_stl_file']));
+            $stl_file = sanitize_text_field($_POST['_kustomizer_stl_file']);
+            update_post_meta($post_id, '_kustomizer_stl_file', $stl_file);
+            
+            // If STL file is set, mark this as a kustomizer product
+            if (!empty($stl_file)) {
+                update_post_meta($post_id, '_kustomizer_product', 'yes');
+                
+                // Force set the product type
+                wp_set_object_terms($post_id, 'kustomizer_product', 'product_type');
+                error_log('Kustomizer: Set product ' . $post_id . ' as kustomizer_product due to STL file');
+            }
         }
         
         // Default Texture URL
@@ -164,6 +195,15 @@ class Kustomizer_Product_Type {
         // Customization Price
         if (isset($_POST['_kustomizer_customization_price'])) {
             update_post_meta($post_id, '_kustomizer_customization_price', floatval($_POST['_kustomizer_customization_price']));
+        }
+        
+        // Check if we should set as kustomizer product based on settings
+        $has_customization = $allow_text === 'yes' || $allow_svg === 'yes' || $allow_texture === 'yes';
+        $has_stl = !empty(get_post_meta($post_id, '_kustomizer_stl_file', true));
+        
+        if ($has_customization || $has_stl) {
+            update_post_meta($post_id, '_kustomizer_product', 'yes');
+            wp_set_object_terms($post_id, 'kustomizer_product', 'product_type');
         }
     }
 }

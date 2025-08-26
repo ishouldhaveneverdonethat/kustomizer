@@ -3,9 +3,35 @@
  * Main class for handling 3D STL product customization
  */
 
+// Check for required dependencies
+if (typeof THREE === 'undefined') {
+    console.error('Kustomizer: THREE.js is required but not loaded');
+}
+
 class Kustomizer {
-    constructor(containerId, options = {}) {
-        this.container = document.getElementById(containerId);
+    constructor(options = {}) {
+        // Validate THREE.js availability
+        if (typeof THREE === 'undefined') {
+            this.showError('THREE.js library is required but not loaded.');
+            return;
+        }
+        
+        // Get container
+        if (typeof options === 'string') {
+            this.container = document.getElementById(options);
+        } else if (options.container) {
+            this.container = typeof options.container === 'string' ? 
+                document.getElementById(options.container) : options.container;
+        } else {
+            this.container = document.getElementById('kustomizer-viewer');
+        }
+        
+        if (!this.container) {
+            console.error('Kustomizer: Container element not found');
+            return;
+        }
+        
+        // Configuration options
         this.options = {
             stlFile: options.stlFile || '',
             defaultTexture: options.defaultTexture || '',

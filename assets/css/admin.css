@@ -47,12 +47,23 @@
 }
 
 /* Product Options */
-.kustomizer-product-options {
+.kustomizer-product-options,
+.show_if_kustomizer_product {
     background: #fff;
     border: 1px solid #ddd;
     border-radius: 3px;
     margin: 10px 0;
     padding: 15px;
+    display: block !important;
+}
+
+.kustomizer-product-options h3 {
+    margin: 0 0 15px 0;
+    padding: 0 0 10px 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #23282d;
+    border-bottom: 1px solid #0073aa;
 }
 
 .kustomizer-product-options h4 {

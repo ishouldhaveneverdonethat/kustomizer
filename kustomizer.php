@@ -121,12 +121,15 @@ class Kustomizer {
         // Debug logging
         error_log('Kustomizer: init_hooks called');
         
+        // Register product type early
+        add_action('init', array($this, 'register_product_type'), 5);
+        
+        // Prevent WPForms conflicts on product pages
+        add_action('admin_enqueue_scripts', array($this, 'prevent_wpforms_conflicts'), 1);
+        
         // Enqueue scripts and styles
         add_action('wp_enqueue_scripts', array($this, 'enqueue_frontend_assets'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
-        
-        // Add custom product type - use init hook to ensure WooCommerce is loaded
-        add_action('init', array($this, 'register_product_type'), 20);
         
         // Handle AJAX requests
         if (class_exists('Kustomizer_Ajax_Handlers')) {
@@ -154,24 +157,123 @@ class Kustomizer {
     }
     
     /**
+     * Prevent WPForms conflicts on product pages
+     */
+    public function prevent_wpforms_conflicts($hook) {
+        $screen = get_current_screen();
+        
+        // Only on product edit pages
+        if ($screen && $screen->id === 'product') {
+            // Log the conflict prevention
+            error_log('Kustomizer: Preventing WPForms conflicts on product edit page');
+            
+            // Remove problematic WPForms scripts that cause conflicts
+            add_action('wp_print_scripts', function() {
+                global $wp_scripts;
+                
+                // Check for WPForms edit-post script and dequeue if it's causing issues
+                $wpforms_scripts = array(
+                    'wpforms-admin-education-edit-post',
+                    'wpforms-education-edit-post',
+                    'wpforms-lite-admin-education-edit-post'
+                );
+                
+                foreach ($wpforms_scripts as $script_handle) {
+                    if (wp_script_is($script_handle, 'registered')) {
+                        wp_dequeue_script($script_handle);
+                        error_log('Kustomizer: Dequeued conflicting WPForms script: ' . $script_handle);
+                    }
+                }
+            }, 999);
+            
+            // Add JavaScript error suppression for remaining WPForms issues
+            add_action('admin_footer', function() {
+                ?>
+                <script type="text/javascript">
+                (function() {
+                    // Suppress WPForms getEditedPostAttribute errors
+                    var originalError = window.onerror;
+                    window.onerror = function(msg, file, line, col, error) {
+                        if (msg && msg.indexOf('getEditedPostAttribute') !== -1) {
+                            console.log('Kustomizer: Suppressed WPForms error:', msg);
+                            return true; // Suppress the error
+                        }
+                        if (originalError) {
+                            return originalError(msg, file, line, col, error);
+                        }
+                        return false;
+                    };
+                })();
+                </script>
+                <?php
+            }, 1);
+        }
+    }
+    
+    /**
      * Register product type hooks
      */
     public function register_product_type() {
         if (class_exists('WooCommerce') && class_exists('Kustomizer_Product_Type')) {
             error_log('Kustomizer: Registering product type hooks on init');
             
-            // Register the product type
-            add_filter('product_type_selector', array('Kustomizer_Product_Type', 'add_product_type'), 10, 1);
-            add_action('woocommerce_product_options_general_product_data', array('Kustomizer_Product_Type', 'add_product_options'));
-            add_action('woocommerce_process_product_meta', array('Kustomizer_Product_Type', 'save_product_options'));
+            // Register the product type with highest priority
+            add_filter('product_type_selector', array('Kustomizer_Product_Type', 'add_product_type'), 5, 1);
+            
+            // Add product options with multiple hook points for reliability
+            add_action('woocommerce_product_options_general_product_data', array('Kustomizer_Product_Type', 'add_product_options'), 5);
+            add_action('woocommerce_product_data_panels', array('Kustomizer_Product_Type', 'add_product_options'), 5);
+            
+            // Save product options with high priority
+            add_action('woocommerce_process_product_meta', array('Kustomizer_Product_Type', 'save_product_options'), 5);
+            
+            // Force product type persistence
+            add_action('save_post', array($this, 'force_product_type_persistence'), 5);
+            add_action('wp_insert_post', array($this, 'force_product_type_persistence'), 5);
             
             // Force refresh of product type options
             add_action('woocommerce_product_data_tabs', array($this, 'ensure_product_type_visible'));
+            
+            // Add admin scripts with defensive error handling
+            add_action('admin_footer', array($this, 'add_defensive_product_type_script'));
+            
         } else {
             error_log('Kustomizer: Cannot register product type - WooCommerce or Kustomizer_Product_Type not available');
+            error_log('WooCommerce exists: ' . (class_exists('WooCommerce') ? 'yes' : 'no'));
+            error_log('Kustomizer_Product_Type exists: ' . (class_exists('Kustomizer_Product_Type') ? 'yes' : 'no'));
         }
     }
     
+    /**
+     * Force product type persistence
+     */
+    public function force_product_type_persistence($post_id) {
+        // Only process product posts
+        if (get_post_type($post_id) !== 'product') {
+            return;
+        }
+        
+        // Check if this should be a kustomizer product
+        $has_stl = get_post_meta($post_id, '_kustomizer_stl_file', true);
+        $current_type = wp_get_object_terms($post_id, 'product_type', array('fields' => 'slugs'));
+        
+        // If product has STL file or is marked as kustomizer product, ensure it stays that way
+        if ($has_stl || in_array('kustomizer_product', $current_type)) {
+            error_log('Kustomizer: Forcing product type persistence for product ' . $post_id);
+            
+            // Force set the product type
+            $result = wp_set_object_terms($post_id, 'kustomizer_product', 'product_type');
+            
+            if (is_wp_error($result)) {
+                error_log('Kustomizer: Error setting product type: ' . $result->get_error_message());
+            } else {
+                error_log('Kustomizer: Successfully set product type to kustomizer_product');
+            }
+            
+            // Also update post meta to mark this as a kustomizer product
+            update_post_meta($post_id, '_kustomizer_product', 'yes');
+        }
+    }
     /**
      * Ensure product type is visible in admin
      */
@@ -185,6 +287,191 @@ class Kustomizer {
             }
         }
         return $tabs;
+    }
+    
+    /**
+     * Add defensive product type script to handle conflicts
+     */
+    public function add_defensive_product_type_script() {
+        $screen = get_current_screen();
+        if ($screen && $screen->id === 'product') {
+            global $post;
+            $is_kustomizer = false;
+            
+            if ($post) {
+                $has_stl = get_post_meta($post->ID, '_kustomizer_stl_file', true);
+                $has_marker = get_post_meta($post->ID, '_kustomizer_product', true);
+                $current_type = wp_get_object_terms($post->ID, 'product_type', array('fields' => 'slugs'));
+                
+                $is_kustomizer = $has_stl || $has_marker || in_array('kustomizer_product', $current_type);
+            }
+            
+            ?>
+            <script type="text/javascript">
+            (function($) {
+                'use strict';
+                
+                // Isolate from WPForms and other plugin conflicts
+                window.kustomizerIsolated = true;
+                
+                // Override problematic functions that cause conflicts
+                var originalConsoleError = console.error;
+                console.error = function() {
+                    var args = Array.prototype.slice.call(arguments);
+                    var message = args.join(' ');
+                    
+                    // Suppress specific WPForms errors that interfere with our plugin
+                    if (message.indexOf('getEditedPostAttribute') === -1) {
+                        originalConsoleError.apply(console, arguments);
+                    }
+                };
+                
+                // Defensive wrapper to handle third-party plugin conflicts
+                try {
+                    var isKustomizer = <?php echo $is_kustomizer ? 'true' : 'false'; ?>;
+                    var attempts = 0;
+                    var maxAttempts = 15;
+                    var kustomizerInitialized = false;
+                    
+                    function forceKustomizerType() {
+                        attempts++;
+                        
+                        try {
+                            var productTypeSelect = $('#product-type');
+                            
+                            if (productTypeSelect.length === 0) {
+                                if (attempts < maxAttempts) {
+                                    console.log('Kustomizer: Product type select not found, attempt ' + attempts + '/' + maxAttempts);
+                                    setTimeout(forceKustomizerType, 1000);
+                                }
+                                return;
+                            }
+                            
+                            // Check if kustomizer_product option exists
+                            var hasKustomizerOption = productTypeSelect.find('option[value="kustomizer_product"]').length > 0;
+                            
+                            if (!hasKustomizerOption) {
+                                // Add the option if it doesn't exist
+                                productTypeSelect.append('<option value="kustomizer_product">Kustomizer Product</option>');
+                                console.log('Kustomizer: Added missing product type option');
+                            }
+                            
+                            if (isKustomizer) {
+                                // Force set to kustomizer product
+                                var currentValue = productTypeSelect.val();
+                                if (currentValue !== 'kustomizer_product') {
+                                    productTypeSelect.val('kustomizer_product');
+                                    console.log('Kustomizer: Changed product type from "' + currentValue + '" to "kustomizer_product"');
+                                }
+                            }
+                            
+                            // Trigger change to show/hide options
+                            toggleKustomizerOptions();
+                            
+                            if (!kustomizerInitialized) {
+                                kustomizerInitialized = true;
+                                console.log('Kustomizer: Successfully initialized product type system');
+                            }
+                            
+                        } catch (e) {
+                            console.warn('Kustomizer: Error in forceKustomizerType (attempt ' + attempts + '):', e);
+                            if (attempts < maxAttempts) {
+                                setTimeout(forceKustomizerType, 1000);
+                            }
+                        }
+                    }
+                    
+                    function toggleKustomizerOptions() {
+                        try {
+                            var productType = $('#product-type').val();
+                            var $options = $('.show_if_kustomizer_product, .kustomizer-product-options');
+                            
+                            if (productType === 'kustomizer_product') {
+                                $options.show();
+                                $options.css('display', 'block');
+                                console.log('Kustomizer: Showing options for product type: ' + productType);
+                            } else {
+                                if (!isKustomizer) {
+                                    $options.hide();
+                                    console.log('Kustomizer: Hiding options for product type: ' + productType);
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('Kustomizer: Error in toggleKustomizerOptions:', e);
+                        }
+                    }
+                    
+                    // Monitor product type changes with conflict prevention
+                    $(document).on('change', '#product-type', function() {
+                        try {
+                            setTimeout(toggleKustomizerOptions, 50);
+                            setTimeout(toggleKustomizerOptions, 200);
+                        } catch (e) {
+                            console.warn('Kustomizer: Error handling product type change:', e);
+                        }
+                    });
+                    
+                    // Aggressive monitoring for dynamic changes (handle third-party plugin interference)
+                    var monitorInterval = setInterval(function() {
+                        try {
+                            if (isKustomizer) {
+                                var currentType = $('#product-type').val();
+                                if (currentType && currentType !== 'kustomizer_product') {
+                                    console.log('Kustomizer: Detected reversion from kustomizer_product to "' + currentType + '" - correcting');
+                                    $('#product-type').val('kustomizer_product');
+                                    toggleKustomizerOptions();
+                                }
+                            }
+                        } catch (e) {
+                            // Silently handle monitoring errors to avoid console spam
+                        }
+                    }, 3000);
+                    
+                    // Stop monitoring after 2 minutes to prevent memory leaks
+                    setTimeout(function() {
+                        clearInterval(monitorInterval);
+                        console.log('Kustomizer: Stopped product type monitoring after 2 minutes');
+                    }, 120000);
+                    
+                    // Initialize when document is ready with multiple fallbacks
+                    $(document).ready(function() {
+                        console.log('Kustomizer: Document ready, initializing...');
+                        
+                        // Immediate attempt
+                        setTimeout(forceKustomizerType, 50);
+                        
+                        // Delayed attempts to handle plugin conflicts
+                        setTimeout(forceKustomizerType, 500);
+                        setTimeout(forceKustomizerType, 1500);
+                        setTimeout(forceKustomizerType, 3000);
+                        setTimeout(forceKustomizerType, 5000);
+                    });
+                    
+                    // Also try on window load
+                    $(window).on('load', function() {
+                        setTimeout(forceKustomizerType, 1000);
+                    });
+                    
+                } catch (criticalError) {
+                    console.error('Kustomizer: Critical error in defensive script:', criticalError);
+                    
+                    // Fallback: Basic functionality without advanced features
+                    $(document).ready(function() {
+                        try {
+                            if (<?php echo $is_kustomizer ? 'true' : 'false'; ?>) {
+                                $('#product-type').val('kustomizer_product');
+                                $('.show_if_kustomizer_product, .kustomizer-product-options').show();
+                            }
+                        } catch (fallbackError) {
+                            console.error('Kustomizer: Even fallback failed:', fallbackError);
+                        }
+                    });
+                }
+                
+            })(jQuery);
+            </script>
+            <?php
+        }
     }
     
     /**
