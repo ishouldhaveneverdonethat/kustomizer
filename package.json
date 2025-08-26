@@ -1,0 +1,59 @@
+{
+  "name": "kustomizer",
+  "version": "1.0.0",
+  "description": "WooCommerce 3D Product Customizer - Allow customers to customize STL products with textures, text, and SVG overlays",
+  "main": "kustomizer.php",
+  "scripts": {
+    "build": "echo 'Build process for production'",
+    "dev": "echo 'Development server'",
+    "test": "echo 'Run tests'",
+    "lint": "echo 'Lint code'",
+    "format": "echo 'Format code'"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yourusername/kustomizer.git"
+  },
+  "keywords": [
+    "wordpress",
+    "woocommerce",
+    "3d",
+    "stl",
+    "customization",
+    "three.js",
+    "webgl",
+    "product-customizer",
+    "e-commerce",
+    "manufacturing"
+  ],
+  "author": "Your Name <your.email@example.com>",
+  "license": "GPL-2.0-or-later",
+  "bugs": {
+    "url": "https://github.com/yourusername/kustomizer/issues"
+  },
+  "homepage": "https://github.com/yourusername/kustomizer#readme",
+  "engines": {
+    "php": ">=7.4",
+    "wordpress": ">=5.0",
+    "woocommerce": ">=5.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "prettier": "^2.0.0"
+  },
+  "wordpress": {
+    "plugin_name": "Kustomizer - WooCommerce 3D Product Customizer",
+    "plugin_uri": "https://github.com/yourusername/kustomizer",
+    "text_domain": "kustomizer",
+    "domain_path": "/languages",
+    "requires_wp": "5.0",
+    "tested_wp": "6.3",
+    "requires_wc": "5.0",
+    "tested_wc": "8.0",
+    "requires_php": "7.4"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/yourusername"
+  }
+}
