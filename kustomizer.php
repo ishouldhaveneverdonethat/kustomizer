@@ -1,21 +1,22 @@
 <?php
 /**
  * Plugin Name: Kustomizer - WooCommerce 3D Product Customizer
- * Plugin URI: https://github.com/yourusername/kustomizer
+ * Plugin URI: https://github.com/ishouldhaveneverdonethat/kustomizer
  * Description: Allow customers to customize 3D STL products with textures, text, and SVG overlays in WooCommerce
- * Version: 1.0.0
- * Author: Your Name
- * Author URI: https://yoursite.com
+ * Version: 1.0.1
+ * Author: ishouldhaveneverdonethat
+ * Author URI: https://github.com/ishouldhaveneverdonethat
  * Text Domain: kustomizer
  * Domain Path: /languages
  * Requires at least: 5.0
- * Tested up to: 6.3
+ * Tested up to: 6.4
  * WC requires at least: 5.0
- * WC tested up to: 8.0
+ * WC tested up to: 8.5
  * Requires PHP: 7.4
  * License: GPL v2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
- * GitHub Plugin URI: yourusername/kustomizer
+ * GitHub Plugin URI: ishouldhaveneverdonethat/kustomizer
+ * WC Feature: High-Performance Order Storage (HPOS)
  */
 
 // Prevent direct access
@@ -24,7 +25,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('KUSTOMIZER_VERSION', '1.0.0');
+define('KUSTOMIZER_VERSION', '1.0.1');
 define('KUSTOMIZER_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('KUSTOMIZER_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('KUSTOMIZER_BASENAME', plugin_basename(__FILE__));
@@ -54,6 +55,7 @@ class Kustomizer {
      */
     private function __construct() {
         add_action('plugins_loaded', array($this, 'init'));
+        add_action('before_woocommerce_init', array($this, 'declare_hpos_compatibility'));
         register_activation_hook(__FILE__, array($this, 'activate'));
         register_deactivation_hook(__FILE__, array($this, 'deactivate'));
     }
@@ -79,14 +81,35 @@ class Kustomizer {
     }
     
     /**
+     * Declare HPOS compatibility
+     */
+    public function declare_hpos_compatibility() {
+        if (class_exists('Automattic\WooCommerce\Utilities\FeaturesUtil')) {
+            \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility(
+                'custom_order_tables',
+                __FILE__,
+                true
+            );
+        }
+    }
+    
+    /**
      * Load required dependencies
      */
     private function load_dependencies() {
         require_once KUSTOMIZER_PLUGIN_DIR . 'includes/class-product-type.php';
         require_once KUSTOMIZER_PLUGIN_DIR . 'includes/class-ajax-handlers.php';
-        require_once KUSTOMIZER_PLUGIN_DIR . 'includes/class-cart-handler.php';
-        require_once KUSTOMIZER_PLUGIN_DIR . 'includes/class-order-handler.php';
-        require_once KUSTOMIZER_PLUGIN_DIR . 'includes/class-admin-settings.php';
+        
+        // Load optional classes if they exist
+        if (file_exists(KUSTOMIZER_PLUGIN_DIR . 'includes/class-cart-handler.php')) {
+            require_once KUSTOMIZER_PLUGIN_DIR . 'includes/class-cart-handler.php';
+        }
+        if (file_exists(KUSTOMIZER_PLUGIN_DIR . 'includes/class-order-handler.php')) {
+            require_once KUSTOMIZER_PLUGIN_DIR . 'includes/class-order-handler.php';
+        }
+        if (file_exists(KUSTOMIZER_PLUGIN_DIR . 'includes/class-admin-settings.php')) {
+            require_once KUSTOMIZER_PLUGIN_DIR . 'includes/class-admin-settings.php';
+        }
     }
     
     /**
@@ -98,19 +121,27 @@ class Kustomizer {
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
         
         // Add custom product type
-        add_filter('product_type_selector', array('Kustomizer_Product_Type', 'add_product_type'));
-        add_action('woocommerce_product_options_general_product_data', array('Kustomizer_Product_Type', 'add_product_options'));
-        add_action('woocommerce_process_product_meta', array('Kustomizer_Product_Type', 'save_product_options'));
+        if (class_exists('Kustomizer_Product_Type')) {
+            add_filter('product_type_selector', array('Kustomizer_Product_Type', 'add_product_type'));
+            add_action('woocommerce_product_options_general_product_data', array('Kustomizer_Product_Type', 'add_product_options'));
+            add_action('woocommerce_process_product_meta', array('Kustomizer_Product_Type', 'save_product_options'));
+        }
         
         // Handle AJAX requests
-        new Kustomizer_Ajax_Handlers();
+        if (class_exists('Kustomizer_Ajax_Handlers')) {
+            new Kustomizer_Ajax_Handlers();
+        }
         
         // Handle cart and orders
-        new Kustomizer_Cart_Handler();
-        new Kustomizer_Order_Handler();
+        if (class_exists('Kustomizer_Cart_Handler')) {
+            new Kustomizer_Cart_Handler();
+        }
+        if (class_exists('Kustomizer_Order_Handler')) {
+            new Kustomizer_Order_Handler();
+        }
         
         // Admin settings
-        if (is_admin()) {
+        if (is_admin() && class_exists('Kustomizer_Admin_Settings')) {
             new Kustomizer_Admin_Settings();
         }
         

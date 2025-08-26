@@ -1,0 +1,342 @@
+/**
+ * Kustomizer Admin Styles
+ * Styles for WordPress admin interface
+ *
+ * @package Kustomizer
+ * @since 1.0.1
+ */
+
+/* Admin Settings Page */
+.kustomizer-admin-header {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 3px;
+}
+
+.kustomizer-admin-header p {
+    margin: 0;
+    font-size: 14px;
+    color: #646970;
+}
+
+.kustomizer-admin-footer {
+    background: #fff;
+    border: 1px solid #ccd0d4;
+    box-shadow: 0 1px 1px rgba(0,0,0,.04);
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 3px;
+}
+
+.kustomizer-admin-footer h3 {
+    margin-top: 0;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+}
+
+.kustomizer-admin-footer table {
+    margin-top: 15px;
+}
+
+.kustomizer-admin-footer table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #f0f0f1;
+}
+
+/* Product Options */
+.kustomizer-product-options {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    margin: 10px 0;
+    padding: 15px;
+}
+
+.kustomizer-product-options h4 {
+    margin: 0 0 15px 0;
+    padding: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #23282d;
+}
+
+.kustomizer-field-group {
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.kustomizer-field-group label {
+    font-weight: 600;
+    min-width: 150px;
+    margin: 0;
+}
+
+.kustomizer-field-group input[type="text"],
+.kustomizer-field-group input[type="number"],
+.kustomizer-field-group select {
+    width: 300px;
+}
+
+.kustomizer-field-group input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.kustomizer-field-description {
+    font-style: italic;
+    color: #646970;
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+/* File Upload */
+.kustomizer-file-upload {
+    border: 2px dashed #ddd;
+    border-radius: 5px;
+    padding: 20px;
+    text-align: center;
+    background: #fafafa;
+    transition: border-color 0.3s ease;
+}
+
+.kustomizer-file-upload:hover {
+    border-color: #0073aa;
+}
+
+.kustomizer-file-upload.has-file {
+    border-color: #46b450;
+    background: #f0f8f0;
+}
+
+.kustomizer-upload-stl {
+    background: #0073aa;
+    border-color: #0073aa;
+    color: #fff;
+    padding: 8px 15px;
+    border-radius: 3px;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-block;
+    margin: 10px 0;
+}
+
+.kustomizer-upload-stl:hover {
+    background: #005a87;
+    color: #fff;
+}
+
+.kustomizer-remove-stl {
+    background: #dc3232;
+    border-color: #dc3232;
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    text-decoration: none;
+    display: none;
+    margin-left: 10px;
+    font-size: 12px;
+}
+
+.kustomizer-remove-stl:hover {
+    background: #c32121;
+    color: #fff;
+}
+
+.kustomizer-file-preview {
+    margin: 10px 0;
+    padding: 10px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    display: none;
+}
+
+.kustomizer-file-preview.has-file {
+    display: block;
+}
+
+.kustomizer-file-info {
+    font-size: 13px;
+}
+
+.kustomizer-file-info strong {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.kustomizer-file-info small {
+    color: #646970;
+}
+
+/* Order Item Display */
+.kustomizer-column {
+    width: 150px;
+}
+
+.kustomizer-admin-meta {
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.kustomizer-admin-meta div {
+    margin-bottom: 3px;
+}
+
+.kustomizer-admin-meta strong {
+    color: #23282d;
+}
+
+.kustomizer-order-meta {
+    background: #f9f9f9;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    padding: 15px;
+    margin: 10px 0;
+}
+
+.kustomizer-order-meta h4 {
+    margin: 0 0 10px 0;
+    color: #23282d;
+    font-size: 14px;
+}
+
+.kustomizer-order-meta p {
+    margin: 5px 0;
+    font-size: 13px;
+}
+
+.kustomizer-order-meta img {
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    margin-top: 5px;
+}
+
+/* Test Button */
+.kustomizer-test-settings {
+    background: #00a32a;
+    border-color: #00a32a;
+    color: #fff;
+    padding: 5px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 13px;
+    margin-left: 10px;
+}
+
+.kustomizer-test-settings:hover {
+    background: #008a20;
+    color: #fff;
+}
+
+.kustomizer-test-settings:disabled {
+    background: #ddd;
+    border-color: #ddd;
+    color: #666;
+    cursor: not-allowed;
+}
+
+/* Color Picker */
+.kustomizer-color-picker {
+    width: 100px;
+}
+
+/* Responsive */
+@media (max-width: 782px) {
+    .kustomizer-field-group {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .kustomizer-field-group label {
+        min-width: auto;
+        margin-bottom: 5px;
+    }
+    
+    .kustomizer-field-group input[type="text"],
+    .kustomizer-field-group input[type="number"],
+    .kustomizer-field-group select {
+        width: 100%;
+    }
+    
+    .kustomizer-upload-stl,
+    .kustomizer-remove-stl {
+        display: block;
+        margin: 5px 0;
+        text-align: center;
+    }
+}
+
+/* Animation */
+@keyframes kustomizer-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.kustomizer-product-options {
+    animation: kustomizer-fade-in 0.3s ease-out;
+}
+
+/* Notice Styles */
+.notice.kustomizer-notice {
+    border-left-color: #0073aa;
+}
+
+.notice.kustomizer-notice.notice-success {
+    border-left-color: #46b450;
+}
+
+.notice.kustomizer-notice.notice-error {
+    border-left-color: #dc3232;
+}
+
+/* Settings Form */
+.form-table th {
+    padding-left: 0;
+}
+
+.form-table td {
+    padding: 15px 0;
+}
+
+.form-table .description {
+    margin-top: 5px;
+    font-style: italic;
+    color: #646970;
+}
+
+/* Loading State */
+.kustomizer-loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.kustomizer-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #0073aa;
+    border-radius: 50%;
+    animation: kustomizer-spin 1s linear infinite;
+}
+
+@keyframes kustomizer-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
