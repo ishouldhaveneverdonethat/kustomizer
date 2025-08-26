@@ -21,6 +21,25 @@
             this.bindEvents();
             this.initMediaUploader();
             this.initColorPicker();
+            this.initProductTypeHandler();
+        },
+        
+        /**
+         * Initialize product type handler
+         */
+        initProductTypeHandler: function() {
+            // Force check on page load
+            setTimeout(function() {
+                var productType = $('select#product-type').val();
+                console.log('Initial product type:', productType);
+                
+                if (productType === 'kustomizer_product') {
+                    $('.show_if_kustomizer_product').show();
+                    console.log('Showed Kustomizer options on init');
+                } else {
+                    $('.show_if_kustomizer_product').hide();
+                }
+            }, 500);
         },
         
         /**
@@ -224,11 +243,17 @@
          */
         toggleProductOptions: function() {
             var productType = $(this).val();
-            var customizerOptions = $('.kustomizer-product-options');
+            var customizerOptions = $('.show_if_kustomizer_product');
+            
+            console.log('Product type changed to:', productType);
+            console.log('Found Kustomizer options:', customizerOptions.length);
             
             if (productType === 'kustomizer_product') {
+                console.log('Showing Kustomizer options');
                 customizerOptions.show();
+                customizerOptions.find('input, select, textarea').prop('disabled', false);
             } else {
+                console.log('Hiding Kustomizer options');
                 customizerOptions.hide();
             }
         },
