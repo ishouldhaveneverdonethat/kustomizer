@@ -112,6 +112,14 @@ class Kustomizer_Product_Type {
                     $('.show_if_kustomizer_product').hide();
                 }
             }).change();
+            
+            // Force correct product type selection on page load
+            <?php 
+            $current_type = wp_get_object_terms($post->ID, 'product_type', array('fields' => 'slugs'));
+            if (in_array('kustomizer_product', $current_type)) {
+                echo "setTimeout(function() { $('select#product-type').val('kustomizer_product').trigger('change'); }, 100);";
+            }
+            ?>
         });
         </script>
         <?php

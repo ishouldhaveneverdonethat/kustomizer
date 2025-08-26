@@ -125,15 +125,8 @@ class Kustomizer {
         add_action('wp_enqueue_scripts', array($this, 'enqueue_frontend_assets'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
         
-        // Add custom product type
-        if (class_exists('Kustomizer_Product_Type')) {
-            error_log('Kustomizer: Registering product type hooks');
-            add_filter('product_type_selector', array('Kustomizer_Product_Type', 'add_product_type'));
-            add_action('woocommerce_product_options_general_product_data', array('Kustomizer_Product_Type', 'add_product_options'));
-            add_action('woocommerce_process_product_meta', array('Kustomizer_Product_Type', 'save_product_options'));
-        } else {
-            error_log('Kustomizer: Kustomizer_Product_Type class not found!');
-        }
+        // Add custom product type - use init hook to ensure WooCommerce is loaded
+        add_action('init', array($this, 'register_product_type'), 20);
         
         // Handle AJAX requests
         if (class_exists('Kustomizer_Ajax_Handlers')) {
@@ -151,10 +144,65 @@ class Kustomizer {
         // Admin settings
         if (is_admin() && class_exists('Kustomizer_Admin_Settings')) {
             new Kustomizer_Admin_Settings();
+            
+            // Add admin notice for debugging
+            add_action('admin_notices', array($this, 'product_type_debug_notice'));
         }
         
         // Single product page customization
         add_action('woocommerce_single_product_summary', array($this, 'add_customizer_interface'), 25);
+    }
+    
+    /**
+     * Register product type hooks
+     */
+    public function register_product_type() {
+        if (class_exists('WooCommerce') && class_exists('Kustomizer_Product_Type')) {
+            error_log('Kustomizer: Registering product type hooks on init');
+            
+            // Register the product type
+            add_filter('product_type_selector', array('Kustomizer_Product_Type', 'add_product_type'), 10, 1);
+            add_action('woocommerce_product_options_general_product_data', array('Kustomizer_Product_Type', 'add_product_options'));
+            add_action('woocommerce_process_product_meta', array('Kustomizer_Product_Type', 'save_product_options'));
+            
+            // Force refresh of product type options
+            add_action('woocommerce_product_data_tabs', array($this, 'ensure_product_type_visible'));
+        } else {
+            error_log('Kustomizer: Cannot register product type - WooCommerce or Kustomizer_Product_Type not available');
+        }
+    }
+    
+    /**
+     * Ensure product type is visible in admin
+     */
+    public function ensure_product_type_visible($tabs) {
+        // This helps ensure our custom product type is recognized
+        global $post;
+        if ($post) {
+            $product_type = wp_get_object_terms($post->ID, 'product_type', array('fields' => 'slugs'));
+            if (in_array('kustomizer_product', $product_type)) {
+                error_log('Kustomizer: Product ' . $post->ID . ' is kustomizer_product type');
+            }
+        }
+        return $tabs;
+    }
+    
+    /**
+     * Debug notice for product type issues
+     */
+    public function product_type_debug_notice() {
+        $screen = get_current_screen();
+        if ($screen && $screen->id === 'product' && isset($_GET['post'])) {
+            $post_id = intval($_GET['post']);
+            $product_type = wp_get_object_terms($post_id, 'product_type', array('fields' => 'slugs'));
+            
+            if (in_array('kustomizer_product', $product_type)) {
+                echo '<div class="notice notice-info"><p>';
+                echo '<strong>Kustomizer Debug:</strong> This product is set as "kustomizer_product" in the database. ';
+                echo 'If the dropdown shows "Simple product", try refreshing the page or clicking "Update" to sync the interface.';
+                echo '</p></div>';
+            }
+        }
     }
     
     /**
