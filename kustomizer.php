@@ -57,6 +57,7 @@ class Kustomizer {
         add_action('plugins_loaded', array($this, 'init'));
         add_action('before_woocommerce_init', array($this, 'declare_hpos_compatibility'));
         add_action('admin_init', array($this, 'manual_convert_product'));
+        add_action('admin_menu', array($this, 'add_conversion_menu'));
         register_activation_hook(__FILE__, array($this, 'activate'));
         register_deactivation_hook(__FILE__, array($this, 'deactivate'));
     }
@@ -328,32 +329,98 @@ class Kustomizer {
     
     /**
      * Manual function to convert a product to kustomizer type
-     * Access via: /wp-admin/admin.php?kustomizer_convert=628
+     * Access via: /wp-admin/admin.php?kustomizer_convert=PRODUCT_ID
      */
     public function manual_convert_product() {
-        if (isset($_GET['kustomizer_convert']) && is_admin()) {
+        if (isset($_GET['kustomizer_convert'])) {
             $product_id = intval($_GET['kustomizer_convert']);
-            if ($product_id > 0 && current_user_can('manage_woocommerce')) {
-                // Set product type to kustomizer_product
+            
+            // Always show debug info
+            echo '<div style="background: #fff; padding: 20px; margin: 20px; border: 1px solid #ccc;">';
+            echo '<h2>Kustomizer Product Conversion</h2>';
+            echo '<p>Product ID: ' . $product_id . '</p>';
+            echo '<p>Current User Can Manage WooCommerce: ' . (current_user_can('manage_woocommerce') ? 'Yes' : 'No') . '</p>';
+            echo '<p>Is Admin: ' . (is_admin() ? 'Yes' : 'No') . '</p>';
+            
+            if ($product_id > 0) {
+                if (current_user_can('manage_woocommerce')) {
+                    // Get current product type
+                    $current_type = wp_get_object_terms($product_id, 'product_type');
+                    echo '<p>Current product type: ' . (isset($current_type[0]) ? $current_type[0]->slug : 'none') . '</p>';
+                    
+                    // Set product type to kustomizer_product
+                    $result = wp_set_object_terms($product_id, 'kustomizer_product', 'product_type');
+                    echo '<p>Set product type result: ' . print_r($result, true) . '</p>';
+                    
+                    // Enable all customization options
+                    update_post_meta($product_id, '_kustomizer_allow_text', 'yes');
+                    update_post_meta($product_id, '_kustomizer_allow_texture', 'yes');
+                    update_post_meta($product_id, '_kustomizer_allow_svg', 'yes');
+                    
+                    echo '<p><strong>Conversion completed!</strong></p>';
+                    echo '<p><a href="' . admin_url('post.php?post=' . $product_id . '&action=edit') . '">Edit Product</a></p>';
+                    echo '<p><a href="' . get_permalink($product_id) . '">View Product</a></p>';
+                } else {
+                    echo '<p><strong>Error:</strong> You don\'t have permission to manage WooCommerce.</p>';
+                }
+            } else {
+                echo '<p><strong>Error:</strong> Invalid product ID.</p>';
+            }
+            echo '</div>';
+            
+            // Stop further execution
+            exit;
+        }
+    }
+    
+    /**
+     * Add conversion menu to admin
+     */
+    public function add_conversion_menu() {
+        add_submenu_page(
+            'tools.php',
+            'Kustomizer Converter',
+            'Kustomizer Converter',
+            'manage_woocommerce',
+            'kustomizer-converter',
+            array($this, 'conversion_page')
+        );
+    }
+    
+    /**
+     * Conversion admin page
+     */
+    public function conversion_page() {
+        if (isset($_POST['convert_product']) && isset($_POST['product_id'])) {
+            $product_id = intval($_POST['product_id']);
+            if ($product_id > 0) {
+                // Convert the product
                 wp_set_object_terms($product_id, 'kustomizer_product', 'product_type');
-                
-                // Enable all customization options
                 update_post_meta($product_id, '_kustomizer_allow_text', 'yes');
                 update_post_meta($product_id, '_kustomizer_allow_texture', 'yes');
                 update_post_meta($product_id, '_kustomizer_allow_svg', 'yes');
                 
-                // Add a sample STL file URL (you'll need to upload your own)
-                update_post_meta($product_id, '_kustomizer_stl_file', 'https://www.br4n.eu/wp-content/uploads/2024/sample.stl');
-                
-                add_action('admin_notices', function() use ($product_id) {
-                    echo '<div class="notice notice-success"><p>';
-                    echo sprintf(__('Product #%d has been converted to Kustomizer Product type!', 'kustomizer'), $product_id);
-                    echo '<br><a href="' . admin_url('post.php?post=' . $product_id . '&action=edit') . '">Edit Product</a>';
-                    echo ' | <a href="' . get_permalink($product_id) . '">View Product</a>';
-                    echo '</p></div>';
-                });
+                echo '<div class="notice notice-success"><p>Product #' . $product_id . ' converted successfully!</p></div>';
             }
         }
+        
+        ?>
+        <div class="wrap">
+            <h1>Kustomizer Product Converter</h1>
+            <form method="post">
+                <table class="form-table">
+                    <tr>
+                        <th scope="row">Product ID</th>
+                        <td>
+                            <input type="number" name="product_id" value="632" />
+                            <p class="description">Enter the product ID you want to convert to Kustomizer Product</p>
+                        </td>
+                    </tr>
+                </table>
+                <?php submit_button('Convert Product', 'primary', 'convert_product'); ?>
+            </form>
+        </div>
+        <?php
     }
 }
 
