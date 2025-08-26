@@ -13,7 +13,9 @@ class Kustomizer_Product_Type {
      * Add Kustomizer product type to WooCommerce
      */
     public static function add_product_type($types) {
+        error_log('Kustomizer: add_product_type called, adding kustomizer_product type');
         $types['kustomizer_product'] = __('Kustomizer Product', 'kustomizer');
+        error_log('Kustomizer: Product types now: ' . print_r($types, true));
         return $types;
     }
     

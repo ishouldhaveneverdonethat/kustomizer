@@ -56,6 +56,7 @@ class Kustomizer {
     private function __construct() {
         add_action('plugins_loaded', array($this, 'init'));
         add_action('before_woocommerce_init', array($this, 'declare_hpos_compatibility'));
+        add_action('admin_init', array($this, 'manual_convert_product'));
         register_activation_hook(__FILE__, array($this, 'activate'));
         register_deactivation_hook(__FILE__, array($this, 'deactivate'));
     }
@@ -116,15 +117,21 @@ class Kustomizer {
      * Initialize hooks
      */
     private function init_hooks() {
+        // Debug logging
+        error_log('Kustomizer: init_hooks called');
+        
         // Enqueue scripts and styles
         add_action('wp_enqueue_scripts', array($this, 'enqueue_frontend_assets'));
         add_action('admin_enqueue_scripts', array($this, 'enqueue_admin_assets'));
         
         // Add custom product type
         if (class_exists('Kustomizer_Product_Type')) {
+            error_log('Kustomizer: Registering product type hooks');
             add_filter('product_type_selector', array('Kustomizer_Product_Type', 'add_product_type'));
             add_action('woocommerce_product_options_general_product_data', array('Kustomizer_Product_Type', 'add_product_options'));
             add_action('woocommerce_process_product_meta', array('Kustomizer_Product_Type', 'save_product_options'));
+        } else {
+            error_log('Kustomizer: Kustomizer_Product_Type class not found!');
         }
         
         // Handle AJAX requests
@@ -317,6 +324,36 @@ class Kustomizer {
         echo '<div class="error"><p><strong>' . 
              __('Kustomizer requires WooCommerce to be installed and active.', 'kustomizer') . 
              '</strong></p></div>';
+    }
+    
+    /**
+     * Manual function to convert a product to kustomizer type
+     * Access via: /wp-admin/admin.php?kustomizer_convert=628
+     */
+    public function manual_convert_product() {
+        if (isset($_GET['kustomizer_convert']) && is_admin()) {
+            $product_id = intval($_GET['kustomizer_convert']);
+            if ($product_id > 0 && current_user_can('manage_woocommerce')) {
+                // Set product type to kustomizer_product
+                wp_set_object_terms($product_id, 'kustomizer_product', 'product_type');
+                
+                // Enable all customization options
+                update_post_meta($product_id, '_kustomizer_allow_text', 'yes');
+                update_post_meta($product_id, '_kustomizer_allow_texture', 'yes');
+                update_post_meta($product_id, '_kustomizer_allow_svg', 'yes');
+                
+                // Add a sample STL file URL (you'll need to upload your own)
+                update_post_meta($product_id, '_kustomizer_stl_file', 'https://www.br4n.eu/wp-content/uploads/2024/sample.stl');
+                
+                add_action('admin_notices', function() use ($product_id) {
+                    echo '<div class="notice notice-success"><p>';
+                    echo sprintf(__('Product #%d has been converted to Kustomizer Product type!', 'kustomizer'), $product_id);
+                    echo '<br><a href="' . admin_url('post.php?post=' . $product_id . '&action=edit') . '">Edit Product</a>';
+                    echo ' | <a href="' . get_permalink($product_id) . '">View Product</a>';
+                    echo '</p></div>';
+                });
+            }
+        }
     }
 }
 
