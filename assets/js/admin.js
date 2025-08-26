@@ -28,6 +28,8 @@
          */
         bindEvents: function() {
             // STL file upload
+            $(document).on('click', '.upload_stl_file', this.openSTLUploader);
+            $(document).on('click', '.upload_texture_file', this.openTextureUploader);
             $(document).on('click', '.kustomizer-upload-stl', this.openMediaUploader);
             $(document).on('click', '.kustomizer-remove-stl', this.removeSTLFile);
             
@@ -58,8 +60,73 @@
         },
         
         /**
-         * Open media uploader
+         * Open STL file uploader
          */
+        openSTLUploader: function(e) {
+            e.preventDefault();
+            
+            var button = $(this);
+            var targetInput = $('#_kustomizer_stl_file');
+            
+            // Create media uploader
+            var mediaUploader = wp.media({
+                title: 'Select STL File',
+                button: {
+                    text: 'Use This File'
+                },
+                multiple: false
+            });
+            
+            // Media selected
+            mediaUploader.on('select', function() {
+                var attachment = mediaUploader.state().get('selection').first().toJSON();
+                targetInput.val(attachment.url);
+                
+                // Show success message
+                button.after('<span class="upload-success" style="color: green; margin-left: 10px;">✓ File uploaded</span>');
+                setTimeout(function() {
+                    $('.upload-success').fadeOut();
+                }, 3000);
+            });
+            
+            mediaUploader.open();
+        },
+        
+        /**
+         * Open texture file uploader
+         */
+        openTextureUploader: function(e) {
+            e.preventDefault();
+            
+            var button = $(this);
+            var targetInput = $('#_kustomizer_default_texture');
+            
+            // Create media uploader
+            var mediaUploader = wp.media({
+                title: 'Select Texture Image',
+                button: {
+                    text: 'Use This Image'
+                },
+                multiple: false,
+                library: {
+                    type: ['image']
+                }
+            });
+            
+            // Media selected
+            mediaUploader.on('select', function() {
+                var attachment = mediaUploader.state().get('selection').first().toJSON();
+                targetInput.val(attachment.url);
+                
+                // Show success message
+                button.after('<span class="upload-success" style="color: green; margin-left: 10px;">✓ Image uploaded</span>');
+                setTimeout(function() {
+                    $('.upload-success').fadeOut();
+                }, 3000);
+            });
+            
+            mediaUploader.open();
+        },
         openMediaUploader: function(e) {
             e.preventDefault();
             

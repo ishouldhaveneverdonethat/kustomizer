@@ -247,20 +247,37 @@ class Kustomizer {
         if ('post.php' === $hook || 'post-new.php' === $hook) {
             global $post;
             if ($post && get_post_type($post) === 'product') {
+                // Enqueue WordPress media uploader
                 wp_enqueue_media();
+                
+                // Enqueue admin scripts
                 wp_enqueue_script(
                     'kustomizer-admin', 
                     KUSTOMIZER_PLUGIN_URL . 'assets/js/admin.js', 
-                    array('jquery'), 
+                    array('jquery', 'media-upload', 'media-views'), 
                     KUSTOMIZER_VERSION, 
                     true
                 );
+                
+                // Enqueue admin styles
                 wp_enqueue_style(
                     'kustomizer-admin-styles', 
                     KUSTOMIZER_PLUGIN_URL . 'assets/css/admin.css', 
                     array(), 
                     KUSTOMIZER_VERSION
                 );
+                
+                // Localize script for admin
+                wp_localize_script('kustomizer-admin', 'kustomizer_admin', array(
+                    'ajaxUrl' => admin_url('admin-ajax.php'),
+                    'nonce' => wp_create_nonce('kustomizer_admin_nonce'),
+                    'strings' => array(
+                        'selectSTL' => __('Select STL File', 'kustomizer'),
+                        'selectTexture' => __('Select Texture Image', 'kustomizer'),
+                        'useFile' => __('Use This File', 'kustomizer'),
+                        'fileUploaded' => __('File uploaded', 'kustomizer'),
+                    )
+                ));
             }
         }
     }
